@@ -7,6 +7,7 @@ GEM
     bourne (1.4.0)
       mocha (~> 0.13.2)
     git (1.2.5)
+    hiredis (0.4.5)
     i18n (0.6.1)
     jeweler (1.8.4)
       bundler (~> 1.0)
@@ -22,6 +23,7 @@ GEM
     rcov (1.0.0)
     rdoc (3.12.2)
       json (~> 1.4)
+    redis (3.0.3)
     shoulda (3.4.0)
       shoulda-context (~> 1.0, >= 1.0.1)
       shoulda-matchers (~> 1.0, >= 1.4.1)
@@ -39,8 +41,10 @@ PLATFORMS
 
 DEPENDENCIES
   bundler
+  hiredis (~> 0.4.5)
   jeweler (~> 1.8.4)
   rcov
   rdoc (~> 3.12)
+  redis (~> 3.0.1)
   shoulda
   simplecov

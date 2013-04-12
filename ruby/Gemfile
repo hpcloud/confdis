@@ -10,6 +10,8 @@ group :development do
   gem "rdoc", "~> 3.12"
   gem "bundler"
   gem "jeweler", "~> 1.8.4"
+  gem "redis", "~> 3.0.1"
+  gem "hiredis", "~> 0.4.5"
   gem 'simplecov', :platforms => :mri_19
   gem 'rcov', :platforms => :mri_18
 end
