@@ -12,14 +12,17 @@ type ConfDis struct {
 	pubChannel   string
 	configStruct interface{}
 	redis        *redis.Client
+	Changes      chan error // Channel to receive config updates (value is return of reload())
 }
 
 func New(addr, rootKey string, struc interface{}) (*ConfDis, error) {
-	c := ConfDis{rootKey, rootKey + ":_changes", struc, nil}
+	c := ConfDis{rootKey, rootKey + ":_changes", struc, nil, make(chan error)}
 	if err := c.connect(addr); err != nil {
 		return nil, err
 	}
-	c.reload()
+	if err := c.reload(); err != nil {
+		return nil, err
+	}
 	return &c, c.watch()
 }
 
@@ -59,10 +62,9 @@ func (c *ConfDis) reload() error {
 	if r := c.redis.Get(c.rootKey); r.Err() != nil {
 		return r.Err()
 	} else {
-		data := []byte(r.Val())
-		json.Unmarshal(data, c.configStruct)
+		return json.Unmarshal([]byte(r.Val()), c.configStruct)
 	}
-	return nil
+	panic("unreachable")
 }
 
 // watch watches for changes from other clients
@@ -81,7 +83,7 @@ func (c *ConfDis) watch() error {
 	go func() {
 		for {
 			<-ch
-			c.reload()
+			c.Changes <- c.reload()
 		}
 	}()
 

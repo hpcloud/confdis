@@ -40,6 +40,13 @@ func TestChangeNotification(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	go func() {
+		for err := range c.Changes {
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}()
 	config.Name = "primates-changes"
 	config.Users = []string{"chimp", "bonobo", "lemur"}
 	config.Meta.Researcher = "Jane Goodall"
@@ -50,12 +57,21 @@ func TestChangeNotification(t *testing.T) {
 
 	// Second client
 	var config2 SampleConfig
-	if _, err = New(
+	if c2, err := New(
 		"localhost:6379",
 		"test:confdis:notify",
 		&config2); err != nil {
 		t.Fatal(err)
+	}else{
+		go func() {
+			for err := range c2.Changes {
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+		}()
 	}
+
 	if config2.Meta.Researcher != "Jane Goodall" {
 		t.Fatal("different value")
 	}
