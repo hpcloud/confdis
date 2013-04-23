@@ -42,7 +42,7 @@ func createStruct(t reflect.Type) interface{} {
 
 // Save saves current config onto redis. WARNING: Save() may not work
 // correctly if there are concurrent changes from other clients
-// (notified via pubsub).
+// (notified via pubsub); see reload() below.
 func (c *ConfDis) Save() error {
 	if data, err := json.Marshal(c.Config); err != nil {
 		return err
@@ -72,9 +72,6 @@ func (c *ConfDis) connect(addr string) error {
 
 // reload reloads the config tree from redis.
 func (c *ConfDis) reload() (interface{}, error) {
-	// FIXME: must zero-value c.Config before overwriting it.
-	// TODO: and when doing so, keep the old config value for sending
-	// in Changes channel (cf. drain change notifications).
 	if r := c.redis.Get(c.rootKey); r.Err() != nil {
 		return nil, r.Err()
 	} else {
@@ -97,7 +94,6 @@ func (c *ConfDis) watch() error {
 	if err != nil {
 		return err
 	}
-	defer pubsub.Close()
 
 	ch, err := pubsub.Subscribe(c.pubChannel)
 	if err != nil {
