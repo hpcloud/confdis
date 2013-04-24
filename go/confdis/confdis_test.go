@@ -81,3 +81,51 @@ func TestChangeNotification(t *testing.T) {
 		t.Fatal("did not receive change")
 	}
 }
+
+func TestAtomicSave(t *testing.T) {
+	// First client, with initial data.
+	c := NewConfDis(t, "test:confdis:atomicsave")
+	go c.MustReceiveChanges()
+	if err := c.AtomicSave(func(i interface{}) error {
+		config := i.(*SampleConfig)
+		config.Name = "primates-changes"
+		config.Users = []string{"chimp", "bonobo", "lemur"}
+		config.Meta.Researcher = "Jane Goodall"
+		config.Meta.Grant = 1200
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	redisDelay()
+
+	// Trigger a change every 20 milliseconds
+	go func() {
+		for _ = range time.Tick(20 * time.Millisecond) {
+			if err := c.AtomicSave(func (i interface{}) error {
+				config := i.(*SampleConfig)
+				config.Meta.Grant += 15
+				return nil
+			}); err != nil {
+				t.Fatalf("Error in periodic-saving: %v", err)
+			}
+		}
+	}()
+
+	// Second client
+	c2 := NewConfDis(t, "test:confdis:atomicsave")
+	go c2.MustReceiveChanges()
+
+	// Trigger a *slow* change, expecting write conflict.
+	if err := c2.AtomicSave(func(i interface{}) error {
+		config := i.(*SampleConfig)
+		// Choose a delay value (50ms) greater than the frequency of
+		// change (20ms) from the other client above.
+		time.Sleep(50 * time.Millisecond)
+		config.Meta.Researcher = "Francine Patterson"
+		return nil
+	}); err == nil {
+		t.Fatal("Expecting this save to fail.")
+	}else{
+		t.Logf("Failed as expected with: %v", err)
+	}
+}
