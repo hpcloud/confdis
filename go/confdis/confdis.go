@@ -3,11 +3,11 @@ package confdis
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/vmihailenco/redis"
 	"net"
 	"reflect"
 	"sync"
-	"fmt"
 )
 
 type structCreator func() interface{}
@@ -42,22 +42,15 @@ func New(addr, rootKey string, structVal interface{}) (*ConfDis, error) {
 	return &c, c.watch()
 }
 
-func createStruct(t reflect.Type) interface{} {
-	return reflect.New(t).Interface()
-}
-
-func (c *ConfDis) save() error {
-	if data, err := json.Marshal(c.Config); err != nil {
-		return err
-	} else {
-		if r := c.redis.Set(c.rootKey, string(data)); r.Err() != nil {
-			return r.Err()
-		}
-		if r := c.redis.Publish(c.pubChannel, "confdis"); r.Err() != nil {
-			return r.Err()
+// MustReceiveChanges listens for change notifications and updates the
+// internal config. Will panic if there is an error reading the new
+// config.
+func (c *ConfDis) MustReceiveChanges() {
+	for err := range c.Changes {
+		if err != nil {
+			panic(err)
 		}
 	}
-	return nil
 }
 
 // AtomicSave is like save, but only writes the changed config back to
@@ -65,16 +58,16 @@ func (c *ConfDis) save() error {
 // pubsub). Note that the converse is not necessarily true; somebody
 // else -- specifically, reload() -- *could* overwrite the changes
 // written by AtomicSave.
-func (c *ConfDis) AtomicSave(editFn func (interface{}) error) error {
+func (c *ConfDis) AtomicSave(editFn func(interface{}) error) error {
 	c.mux.Lock()
 	previousConfig := c.Config
 	previousRev := c.rev
 	c.mux.Unlock()
-	
+
 	if err := editFn(previousConfig); err != nil {
 		return err
 	}
-	
+
 	c.mux.Lock()
 	defer c.mux.Unlock()
 	// Was config changed interim by reload()?
@@ -99,6 +92,24 @@ func (c *ConfDis) connect(addr string) error {
 	}
 
 	c.redis = redis.NewTCPClient(addr, "", 0)
+	return nil
+}
+
+func createStruct(t reflect.Type) interface{} {
+	return reflect.New(t).Interface()
+}
+
+func (c *ConfDis) save() error {
+	if data, err := json.Marshal(c.Config); err != nil {
+		return err
+	} else {
+		if r := c.redis.Set(c.rootKey, string(data)); r.Err() != nil {
+			return r.Err()
+		}
+		if r := c.redis.Publish(c.pubChannel, "confdis"); r.Err() != nil {
+			return r.Err()
+		}
+	}
 	return nil
 }
 

@@ -40,13 +40,7 @@ func TestChangeNotification(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	go func() {
-		for err := range c.Changes {
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-	}()
+	go c.MustReceiveChanges()
 	if err := c.AtomicSave(func(i interface{}) error {
 		config := i.(*SampleConfig)
 		config.Name = "primates-changes"
@@ -68,13 +62,7 @@ func TestChangeNotification(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	go func() {
-		for err := range c2.Changes {
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-	}()
+	go c2.MustReceiveChanges()
 	config2 := c2.Config.(*SampleConfig)
 
 	if config2.Meta.Researcher != "Jane Goodall" {
