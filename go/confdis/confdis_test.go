@@ -14,11 +14,22 @@ type SampleConfig struct {
 	} `json:"meta"`
 }
 
-func TestSimple(t *testing.T) {
+func NewConfDis(t *testing.T, rootKey string) *ConfDis {
 	c, err := New("localhost:6379", "test:confdis:simple", SampleConfig{})
 	if err != nil {
 		t.Fatal(err)
 	}
+	return c
+}
+
+func redisDelay() {
+	// Allow reasonable delay for network/redis latency in the above
+	// save operation.
+	time.Sleep(time.Duration(100 * time.Millisecond))
+}
+
+func TestSimple(t *testing.T) {
+	c := NewConfDis(t, "test:confdis:simple")
 	if err := c.AtomicSave(func(i interface{}) error {
 		config := i.(*SampleConfig)
 		config.Name = "primates"
@@ -32,14 +43,8 @@ func TestSimple(t *testing.T) {
 }
 
 func TestChangeNotification(t *testing.T) {
-	// Seed data, using the first client
-	c, err := New(
-		"localhost:6379",
-		"test:confdis:notify",
-		SampleConfig{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	// First client, with initial data.
+	c := NewConfDis(t, "test:confdis:notify")
 	go c.MustReceiveChanges()
 	if err := c.AtomicSave(func(i interface{}) error {
 		config := i.(*SampleConfig)
@@ -51,21 +56,13 @@ func TestChangeNotification(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	// Allow reasonable delay for network/redis latency
-	time.Sleep(time.Duration(100 * time.Millisecond))
+	redisDelay()
 
 	// Second client
-	c2, err := New(
-		"localhost:6379",
-		"test:confdis:notify",
-		SampleConfig{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	c2 := NewConfDis(t, "test:confdis:notify")
 	go c2.MustReceiveChanges()
-	config2 := c2.Config.(*SampleConfig)
 
-	if config2.Meta.Researcher != "Jane Goodall" {
+	if c2.Config.(*SampleConfig).Meta.Researcher != "Jane Goodall" {
 		t.Fatal("different value")
 	}
 
@@ -77,13 +74,10 @@ func TestChangeNotification(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-
-	// Allow reasonable delay for network/redis latency
-	time.Sleep(time.Duration(100 * time.Millisecond))
+	redisDelay()
 
 	// Second client must get notified of that change
-	config2 = c2.Config.(*SampleConfig)
-	if config2.Meta.Researcher != "Francine Patterson" {
+	if c2.Config.(*SampleConfig).Meta.Researcher != "Francine Patterson" {
 		t.Fatal("did not receive change")
 	}
 }
