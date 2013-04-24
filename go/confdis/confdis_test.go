@@ -19,12 +19,16 @@ func TestSimple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	config := c.Config.(*SampleConfig)
-	config.Name = "primates"
-	config.Users = []string{"chimp", "bonobo", "lemur"}
-	config.Meta.Researcher = "Jane Goodall"
-	config.Meta.Grant = 1200
-	c.Save()
+	if err := c.AtomicSave(func(i interface{}) error {
+		config := i.(*SampleConfig)
+		config.Name = "primates"
+		config.Users = []string{"chimp", "bonobo", "lemur"}
+		config.Meta.Researcher = "Jane Goodall"
+		config.Meta.Grant = 1200
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestChangeNotification(t *testing.T) {
@@ -43,12 +47,16 @@ func TestChangeNotification(t *testing.T) {
 			}
 		}
 	}()
-	config := c.Config.(*SampleConfig)
-	config.Name = "primates-changes"
-	config.Users = []string{"chimp", "bonobo", "lemur"}
-	config.Meta.Researcher = "Jane Goodall"
-	config.Meta.Grant = 1200
-	c.Save()
+	if err := c.AtomicSave(func(i interface{}) error {
+		config := i.(*SampleConfig)
+		config.Name = "primates-changes"
+		config.Users = []string{"chimp", "bonobo", "lemur"}
+		config.Meta.Researcher = "Jane Goodall"
+		config.Meta.Grant = 1200
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 	// Allow reasonable delay for network/redis latency
 	time.Sleep(time.Duration(100 * time.Millisecond))
 
@@ -74,9 +82,14 @@ func TestChangeNotification(t *testing.T) {
 	}
 
 	// Trigger a change via the first client
-	config = c.Config.(*SampleConfig)
-	config.Meta.Researcher = "Francine Patterson"
-	c.Save()
+	if err := c.AtomicSave(func(i interface{}) error {
+		config := i.(*SampleConfig)
+		config.Meta.Researcher = "Francine Patterson"
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
 	// Allow reasonable delay for network/redis latency
 	time.Sleep(time.Duration(100 * time.Millisecond))
 

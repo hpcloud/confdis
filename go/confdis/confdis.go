@@ -6,6 +6,8 @@ import (
 	"github.com/vmihailenco/redis"
 	"net"
 	"reflect"
+	"sync"
+	"fmt"
 )
 
 type structCreator func() interface{}
@@ -15,6 +17,8 @@ type ConfDis struct {
 	structType reflect.Type
 	pubChannel string
 	Config     interface{}
+	rev        int64
+	mux        sync.Mutex // Mutex to protect changes to Config and rev.
 	redis      *redis.Client
 	Changes    chan error // Channel to receive config updates (value is return of reload())
 }
@@ -25,6 +29,8 @@ func New(addr, rootKey string, structVal interface{}) (*ConfDis, error) {
 		reflect.TypeOf(structVal),
 		rootKey + ":_changes",
 		createStruct(reflect.TypeOf(structVal)),
+		0,
+		sync.Mutex{},
 		nil,
 		make(chan error)}
 	if err := c.connect(addr); err != nil {
@@ -40,10 +46,7 @@ func createStruct(t reflect.Type) interface{} {
 	return reflect.New(t).Interface()
 }
 
-// Save saves current config onto redis. WARNING: Save() may not work
-// correctly if there are concurrent changes from other clients
-// (notified via pubsub); see reload() below.
-func (c *ConfDis) Save() error {
+func (c *ConfDis) save() error {
 	if data, err := json.Marshal(c.Config); err != nil {
 		return err
 	} else {
@@ -54,6 +57,35 @@ func (c *ConfDis) Save() error {
 			return r.Err()
 		}
 	}
+	return nil
+}
+
+// AtomicSave is like save, but only writes the changed config back to
+// redis if somebody else did not make a change already (notified via
+// pubsub). Note that the converse is not necessarily true; somebody
+// else -- specifically, reload() -- *could* overwrite the changes
+// written by AtomicSave.
+func (c *ConfDis) AtomicSave(editFn func (interface{}) error) error {
+	c.mux.Lock()
+	previousConfig := c.Config
+	previousRev := c.rev
+	c.mux.Unlock()
+	
+	if err := editFn(previousConfig); err != nil {
+		return err
+	}
+	
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	// Was config changed interim by reload()?
+	if c.rev != previousRev {
+		return fmt.Errorf(
+			"Config already changed (rev %d -> %d)", previousRev, c.rev)
+	}
+	if err := c.save(); err != nil {
+		return err
+	}
+	c.rev += 1
 	return nil
 }
 
@@ -79,10 +111,11 @@ func (c *ConfDis) reload() (interface{}, error) {
 		if err := json.Unmarshal([]byte(r.Val()), config2); err != nil {
 			return nil, err
 		}
-		// FIXME: make it atomic in conjunction with the edits prior
-		// to Save()
+		c.mux.Lock()
+		defer c.mux.Unlock()
 		config1 := c.Config
 		c.Config = config2
+		c.rev += 1
 		return config1, nil
 	}
 	panic("unreachable")
