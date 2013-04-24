@@ -15,24 +15,21 @@ type structCreator func() interface{}
 type ConfDis struct {
 	rootKey    string
 	structType reflect.Type
-	pubChannel string
-	Config     interface{}
+	Config     interface{} // Read-only view of current config tree.
 	rev        int64
 	mux        sync.Mutex // Mutex to protect changes to Config and rev.
 	redis      *redis.Client
 	Changes    chan error // Channel to receive config updates (value is return of reload())
 }
 
+const PUB_SUFFIX = ":_changes"
+
 func New(addr, rootKey string, structVal interface{}) (*ConfDis, error) {
-	c := ConfDis{
-		rootKey,
-		reflect.TypeOf(structVal),
-		rootKey + ":_changes",
-		createStruct(reflect.TypeOf(structVal)),
-		0,
-		sync.Mutex{},
-		nil,
-		make(chan error)}
+	c := ConfDis{}
+	c.rootKey = rootKey
+	c.structType = reflect.TypeOf(structVal)
+	c.Config = createStruct(c.structType)
+	c.Changes = make(chan error)
 	if err := c.connect(addr); err != nil {
 		return nil, err
 	}
@@ -106,7 +103,7 @@ func (c *ConfDis) save() error {
 		if r := c.redis.Set(c.rootKey, string(data)); r.Err() != nil {
 			return r.Err()
 		}
-		if r := c.redis.Publish(c.pubChannel, "confdis"); r.Err() != nil {
+		if r := c.redis.Publish(c.rootKey+PUB_SUFFIX, "confdis"); r.Err() != nil {
 			return r.Err()
 		}
 	}
@@ -139,7 +136,7 @@ func (c *ConfDis) watch() error {
 		return err
 	}
 
-	ch, err := pubsub.Subscribe(c.pubChannel)
+	ch, err := pubsub.Subscribe(c.rootKey + PUB_SUFFIX)
 	if err != nil {
 		return err
 	}
