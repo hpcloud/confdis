@@ -33,8 +33,12 @@ func New(addr, rootKey string, structVal interface{}) (*ConfDis, error) {
 	if err := c.connect(addr); err != nil {
 		return nil, err
 	}
-	if _, err := c.reload(); err != nil {
-		return nil, err
+	if _, empty, err := c.reload(); err != nil {
+		// Ignore if config doesn't already exist; it can be created
+		// later.
+		if !empty {
+			return nil, err
+		}
 	}
 	return &c, c.watch()
 }
@@ -111,20 +115,20 @@ func (c *ConfDis) save() error {
 }
 
 // reload reloads the config tree from redis.
-func (c *ConfDis) reload() (interface{}, error) {
+func (c *ConfDis) reload() (interface{}, bool, error) {
 	if r := c.redis.Get(c.rootKey); r.Err() != nil {
-		return nil, r.Err()
+		return nil, true, r.Err()
 	} else {
 		config2 := createStruct(c.structType)
 		if err := json.Unmarshal([]byte(r.Val()), config2); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		c.mux.Lock()
 		defer c.mux.Unlock()
 		config1 := c.Config
 		c.Config = config2
 		c.rev += 1
-		return config1, nil
+		return config1, false, nil
 	}
 	panic("unreachable")
 }
@@ -144,7 +148,7 @@ func (c *ConfDis) watch() error {
 	go func() {
 		for {
 			<-ch
-			_, err := c.reload()
+			_, _, err := c.reload()
 			// TODO: pass old config (_) if necessary in the future.
 			c.Changes <- err
 		}

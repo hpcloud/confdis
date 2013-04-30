@@ -17,7 +17,7 @@ type SampleConfig struct {
 func NewConfDis(t *testing.T, rootKey string) *ConfDis {
 	c, err := New("localhost:6379", "test:confdis:simple", SampleConfig{})
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Failed to connect to redis: %v", err)
 	}
 	return c
 }
@@ -126,6 +126,6 @@ func TestAtomicSave(t *testing.T) {
 	}); err == nil {
 		t.Fatal("Expecting this save to fail.")
 	}else{
-		t.Logf("Failed as expected with: %v", err)
+		// t.Logf("Failed as expected with: %v", err)
 	}
 }
