@@ -107,6 +107,18 @@
 
     };
 
+    Confdis.prototype.clear = function(cb) {
+      var self = this;
+      this.db.set(this.rootKey, "", function(err, res) {
+          if(!err){
+            self.config = null;
+            return cb();
+          }else{
+            return cb(err);
+          }
+      });
+    };
+
     Confdis.prototype.subscribe = function(cb) {
         var self = this;
 

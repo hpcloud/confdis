@@ -33,10 +33,10 @@ describe('Confdis', function() {
                     });
                 });
 
-                it('it should sync', function(done) {
+                it('it should sync with error - config empty', function(done) {
                     c.sync(function(err, config) {
-                        assert(!err);
-                        done(err);
+                        assert(err);
+                        done();
                     });
                 });
 
@@ -45,12 +45,13 @@ describe('Confdis', function() {
                     c.config = JSON.stringify(dummyData);
                     c.save(function(err) {
                         assert(err === undefined);
+                        assert(c.config);
                         done(err);
 
                     });
                 });
 
-                it('should load the dummy data', function(done) {
+                it('should load & sync the dummy data', function(done) {
                     c.sync(function(err, config) {
                         assert(err === null);
                         assert(config);
@@ -60,11 +61,21 @@ describe('Confdis', function() {
                 });
 
                 it('verify integrity of the dummy data', function(done) {
-                        assert(c.config.version === 1);
-                        assert(c.config.properties["molecular mass"] === 30.0690);
-                        assert(c.config.atoms.coords["3d"].indexOf(1.166929) >=0);
-                        done();
+                    assert(c.config.version === 1);
+                    assert(c.config.properties["molecular mass"] === 30.0690);
+                    assert(c.config.atoms.coords["3d"].indexOf(1.166929) >= 0);
+                    done();
+
                 });
+
+                it('should clear the config data in redis & memory', function(done2) {
+                    c.clear(function(err) {
+                        assert(!c.config);
+                        assert(!err);
+                        done2();
+                    });
+                });
+
 
             });
         });
