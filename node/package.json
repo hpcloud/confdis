@@ -4,7 +4,7 @@
   "description": "A JSON based configuration management tool backed by Redis",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "make"
   },
   "repository": "",
   "dependencies": {
