@@ -1,0 +1,25 @@
+{
+  "name": "confdis",
+  "version": "0.0.1",
+  "description": "A JSON based configuration management tool backed by Redis",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "dependencies": {
+    "redis": "0.8.3"
+  },
+  "devDependencies": {
+    "mocha": "1.9.0"
+  },
+  "keywords": [
+    "redis",
+    "json",
+    "configuration",
+    "management",
+    "distributed"
+  ],
+  "author": "Jamie Paton <jamiep@activestate.com>",
+  "license": "ActiveState"
+}
