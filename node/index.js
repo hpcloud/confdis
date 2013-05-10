@@ -73,7 +73,15 @@
 
         self.db.get(self.rootKey, function(err, reply) {
             if (!err) {
-                return cb(null, reply);
+                if(reply) {
+                  //TODO compare diff and return a list of changed keys?
+                  self.config = reply;
+                  return cb(null, reply);
+                 }else{
+                   err = new Error('config is empty, not syncing');
+                   self.emit('sync-error', err);
+                   return cb(err);
+                 }
             } else {
                 self.emit('sync-error', err);
                 return cb(err);
