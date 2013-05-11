@@ -33,16 +33,15 @@ describe('Confdis', function() {
                     });
                 });
 
-                it('it should sync with error - config empty', function(done) {
-                    c.sync(function(err, config) {
+                it('it should save with error - config empty', function(done) {
+                    c.save(function(err) {
                         assert(err);
                         done();
                     });
                 });
 
                 it('it should save the dummy data', function(done) {
-                    dummyData.version = 1;
-                    c.config = JSON.stringify(dummyData);
+                    c.config = dummyData;
                     c.save(function(err) {
                         assert(err === undefined);
                         assert(c.config);
@@ -52,28 +51,51 @@ describe('Confdis', function() {
                 });
 
                 it('should load & sync the dummy data', function(done) {
-                    c.sync(function(err, config) {
+                    c.sync(function(err, config, changes) {
                         assert(err === null);
                         assert(config);
-                        c.config = JSON.parse(config);
                         done(err);
                     });
                 });
 
+                it('it should modify the config', function(done) {
+                    c.config.version = 99;
+                    c.save(function(err) {
+                        assert(err === undefined);
+                        assert(c.config);
+                        done(err);
+
+                    });
+                });
+
                 it('verify integrity of the dummy data', function(done) {
-                    assert(c.config.version === 1);
+                    assert(c.config.version === 99);
                     assert(c.config.properties["molecular mass"] === 30.0690);
                     assert(c.config.atoms.coords["3d"].indexOf(1.166929) >= 0);
+
+                    // reset for next changes on sync test
+                    c.config.version = 0;
+
                     done();
 
                 });
 
-                it('should clear the config data in redis & memory', function(done2) {
-                    c.clear(function(err) {
+                it('it should give me a list of changes on sync', function(done) {
+                  c.sync(function(err, config, changes) {
+                      assert(err === null);
+                      assert(changes.version);
+                      assert(JSON.stringify(changes.version) === JSON.stringify([ 0, 99 ]));
+                      done(err);
+                  });
+                });
+
+
+                it('should clear the config data in redis & memory', function(done) {
+                    /*c.clear(function(err) {
                         assert(!c.config);
                         assert(!err);
-                        done2();
-                    });
+                        done();
+                    });*/ done();
                 });
 
 

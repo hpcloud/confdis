@@ -1,7 +1,8 @@
 (function() {
     'use strict';
 
-    var events = require('events'),
+    var jsondiff = require('jsondiffpatch'),
+        events = require('events'),
         redis = require('redis');
 
     var Confdis = function(opts) {
@@ -20,6 +21,7 @@
 
         this.redisHost = opts.host;
         this.redisPort = opts.port;
+        this.rootKey   = opts.rootKey;
 
         this.config = null;
         this.db = null;
@@ -71,12 +73,18 @@
     Confdis.prototype.sync = function(cb) {
         var self = this;
 
-        self.db.get(self.rootKey, function(err, reply) {
+        self.db.get(self.opts.rootKey, function(err, reply) {
             if (!err) {
                 if(reply) {
-                  //TODO compare diff and return a list of changed keys?
-                  self.config = reply;
-                  return cb(null, reply);
+                  var changes = null;
+                  if(self.config){
+                    var prevConfig = JSON.parse(JSON.stringify(self.config));
+                    self.config = JSON.parse(reply);
+                    changes = jsondiff.diff(prevConfig, self.config);
+                  }else{
+                    self.config = JSON.parse(reply);
+                  }
+                  return cb(null, reply, changes);
                  }else{
                    err = new Error('config is empty, not syncing');
                    self.emit('sync-error', err);
@@ -94,7 +102,7 @@
         var self = this;
 
         if (self.config) {
-            self.db.set(self.rootKey, self.config, function(err, res) {
+            self.db.set(self.opts.rootKey, JSON.stringify(self.config), function(err, res) {
                 if (err) {
                     self.emit('error', err);
                     return cb(err);
