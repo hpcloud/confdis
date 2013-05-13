@@ -7,6 +7,7 @@
 
     var Confdis = function(opts) {
 
+
         if (!opts) return new Error('Options object not supplied');
 
         this.opts = opts;
@@ -26,7 +27,6 @@
         this.config = null;
         this.db = null;
         this.pubsubDB = null;
-        this.rootKey = null;
 
         this._PUB_SUFFIX = ":_changes";
         this._REDIS_CONNECT_MAX_ATTEMPTS = null;
@@ -35,7 +35,7 @@
 
     };
 
-    Confdis.prototype = new events.EventEmitter();
+    Confdis.prototype = Object.create(events.EventEmitter.prototype);
 
     Confdis.prototype.redisConnectOpts = function() {
         return {
@@ -77,6 +77,7 @@
             if (!err) {
                 if(reply) {
                   var changes = null;
+
                   if(self.config){
                     var prevConfig = JSON.parse(JSON.stringify(self.config));
                     self.config = JSON.parse(reply);
@@ -84,6 +85,8 @@
                   }else{
                     self.config = JSON.parse(reply);
                   }
+
+                  self.emit('sync');
                   return cb(null, reply, changes);
                  }else{
                    err = new Error('config is empty, not syncing');
@@ -117,7 +120,7 @@
 
     Confdis.prototype.clear = function(cb) {
       var self = this;
-      this.db.set(this.rootKey, "", function(err, res) {
+      this.db.set(this.opts.rootKey, "", function(err, res) {
           if(!err){
             self.config = null;
             return cb();
