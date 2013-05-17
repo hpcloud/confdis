@@ -92,7 +92,8 @@ func (c *ConfDis) connect(addr string) error {
 		conn.Close()
 	}
 
-	c.redis = redis.NewTCPClient(addr, "", 0)
+	// kato uses database #1
+	c.redis = redis.NewTCPClient(addr, "", 1)
 	return nil
 }
 
