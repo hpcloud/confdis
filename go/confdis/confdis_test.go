@@ -101,7 +101,7 @@ func TestAtomicSave(t *testing.T) {
 	// Trigger a change every 20 milliseconds
 	go func() {
 		for _ = range time.Tick(20 * time.Millisecond) {
-			if err := c.AtomicSave(func (i interface{}) error {
+			if err := c.AtomicSave(func(i interface{}) error {
 				config := i.(*SampleConfig)
 				config.Meta.Grant += 15
 				return nil
@@ -125,7 +125,7 @@ func TestAtomicSave(t *testing.T) {
 		return nil
 	}); err == nil {
 		t.Fatal("Expecting this save to fail.")
-	}else{
+	} else {
 		// t.Logf("Failed as expected with: %v", err)
 	}
 }

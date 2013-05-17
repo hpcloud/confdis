@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/vmihailenco/redis"
-	"net"
 	"reflect"
 	"sync"
 )
@@ -24,15 +23,13 @@ type ConfDis struct {
 
 const PUB_SUFFIX = ":_changes"
 
-func New(addr, rootKey string, structVal interface{}) (*ConfDis, error) {
+func New(client *redis.Client, rootKey string, structVal interface{}) (*ConfDis, error) {
 	c := ConfDis{}
+	c.redis = client
 	c.rootKey = rootKey
 	c.structType = reflect.TypeOf(structVal)
 	c.Config = createStruct(c.structType)
 	c.Changes = make(chan error)
-	if err := c.connect(addr); err != nil {
-		return nil, err
-	}
 	if _, empty, err := c.reload(); err != nil {
 		// Ignore if config doesn't already exist; it can be created
 		// later.
@@ -80,20 +77,6 @@ func (c *ConfDis) AtomicSave(editFn func(interface{}) error) error {
 		return err
 	}
 	c.rev += 1
-	return nil
-}
-
-func (c *ConfDis) connect(addr string) error {
-	// Bug #97459 -- is the redis client library faking connection for
-	// the down server?
-	if conn, err := net.Dial("tcp", addr); err != nil {
-		return err
-	} else {
-		conn.Close()
-	}
-
-	// kato uses database #1
-	c.redis = redis.NewTCPClient(addr, "", 1)
 	return nil
 }
 
