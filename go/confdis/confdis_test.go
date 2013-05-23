@@ -69,7 +69,7 @@ func TestChangeNotification(t *testing.T) {
 	c2 := NewConfDis(t, "test:confdis:notify")
 	go c2.MustReceiveChanges()
 
-	if c2.Config.(*SampleConfig).Meta.Researcher != "Jane Goodall" {
+	if c2.GetConfig().(*SampleConfig).Meta.Researcher != "Jane Goodall" {
 		t.Fatal("different value")
 	}
 
@@ -84,7 +84,7 @@ func TestChangeNotification(t *testing.T) {
 	redisDelay()
 
 	// Second client must get notified of that change
-	if c2.Config.(*SampleConfig).Meta.Researcher != "Francine Patterson" {
+	if c2.GetConfig().(*SampleConfig).Meta.Researcher != "Francine Patterson" {
 		t.Fatal("did not receive change")
 	}
 }

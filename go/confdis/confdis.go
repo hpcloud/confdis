@@ -14,9 +14,9 @@ type structCreator func() interface{}
 type ConfDis struct {
 	rootKey    string
 	structType reflect.Type
-	Config     interface{} // Read-only view of current config tree.
+	config     interface{} // Read-only view of current config tree.
 	rev        int64
-	mux        sync.Mutex // Mutex to protect changes to Config and rev.
+	mux        sync.Mutex // Mutex to protect changes to config and rev.
 	redis      *redis.Client
 	Changes    chan error // Channel to receive config updates (value is return of reload())
 }
@@ -28,7 +28,7 @@ func New(client *redis.Client, rootKey string, structVal interface{}) (*ConfDis,
 	c.redis = client
 	c.rootKey = rootKey
 	c.structType = reflect.TypeOf(structVal)
-	c.Config = createStruct(c.structType)
+	c.config = createStruct(c.structType)
 	c.Changes = make(chan error)
 	if _, empty, err := c.reload(); err != nil {
 		// Ignore if config doesn't already exist; it can be created
@@ -38,6 +38,13 @@ func New(client *redis.Client, rootKey string, structVal interface{}) (*ConfDis,
 		}
 	}
 	return &c, c.watch()
+}
+
+// GetConfig returns the current snapshot of config struct.
+func (c *ConfDis) GetConfig() interface{} {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	return c.config
 }
 
 // MustReceiveChanges listens for change notifications and updates the
@@ -58,11 +65,11 @@ func (c *ConfDis) MustReceiveChanges() {
 // written by AtomicSave.
 func (c *ConfDis) AtomicSave(editFn func(interface{}) error) error {
 	c.mux.Lock()
-	previousConfig := c.Config
+	previousconfig := c.config
 	previousRev := c.rev
 	c.mux.Unlock()
 
-	if err := editFn(previousConfig); err != nil {
+	if err := editFn(previousconfig); err != nil {
 		return err
 	}
 
@@ -71,7 +78,7 @@ func (c *ConfDis) AtomicSave(editFn func(interface{}) error) error {
 	// Was config changed interim by reload()?
 	if c.rev != previousRev {
 		return fmt.Errorf(
-			"Config already changed (rev %d -> %d)", previousRev, c.rev)
+			"config already changed (rev %d -> %d)", previousRev, c.rev)
 	}
 	if err := c.save(); err != nil {
 		return err
@@ -85,7 +92,7 @@ func createStruct(t reflect.Type) interface{} {
 }
 
 func (c *ConfDis) save() error {
-	if data, err := json.Marshal(c.Config); err != nil {
+	if data, err := json.Marshal(c.config); err != nil {
 		return err
 	} else {
 		if r := c.redis.Set(c.rootKey, string(data)); r.Err() != nil {
@@ -109,8 +116,8 @@ func (c *ConfDis) reload() (interface{}, bool, error) {
 		}
 		c.mux.Lock()
 		defer c.mux.Unlock()
-		config1 := c.Config
-		c.Config = config2
+		config1 := c.config
+		c.config = config2
 		c.rev += 1
 		return config1, false, nil
 	}
