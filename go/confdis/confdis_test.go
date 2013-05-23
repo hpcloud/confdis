@@ -1,6 +1,8 @@
 package confdis
 
 import (
+	"github.com/vmihailenco/redis"
+	"net"
 	"testing"
 	"time"
 )
@@ -15,7 +17,12 @@ type SampleConfig struct {
 }
 
 func NewConfDis(t *testing.T, rootKey string) *ConfDis {
-	c, err := New("localhost:6379", "test:confdis:simple", SampleConfig{})
+	redis, err := NewRedisClient("localhost:6379", "", 0)
+	if err != nil {
+		t.Fatalf("Unable to connect to redis: %v", err)
+	}
+
+	c, err := New(redis, "test:confdis:simple", SampleConfig{})
 	if err != nil {
 		t.Fatalf("Failed to connect to redis: %v", err)
 	}
@@ -128,4 +135,18 @@ func TestAtomicSave(t *testing.T) {
 	} else {
 		// t.Logf("Failed as expected with: %v", err)
 	}
+}
+
+// NewRedisClient connects to redis after ensuring that the server is
+// indeed running.
+func NewRedisClient(addr, password string, database int64) (*redis.Client, error) {
+	// Bug #97459 -- is the redis client library faking connection for
+	// the down server?
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	conn.Close()
+
+	return redis.NewTCPClient(addr, password, database), nil
 }
