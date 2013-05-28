@@ -117,6 +117,23 @@ describe('Confdis', function() {
 
                 });
 
+                it('is should give me a component value', function(done) {
+                    c.getComponentValue(rootKey, "atoms", function(err, val){
+                        assert(!err);
+                        assert(val);
+                        assert(val.ids);
+                        done();
+                    });
+                });
+
+                it('is should give me a error for a nonexistent component value', function(done) {
+                    c.getComponentValue(Math.random().toString(36).substring(7), "atoms", function(err, val){
+                        assert(err);
+                        assert(!val);
+                        done();
+                    });
+                });
+
                 it('should clear the config data in redis & memory', function(done) {
                     c.clear(function(err) {
                         assert(!c.config);

@@ -137,6 +137,22 @@
       });
     };
 
+    Confdis.prototype.getComponentValue = function(component, key, cb) {
+      this.db.get(component, function(err, reply){
+        if(err || !reply) return cb(err || new Error('Empty config'));
+        try {
+            var componentConf = JSON.parse(reply);
+        } catch (err) {
+            return cb(err);
+        }
+        if(componentConf.hasOwnProperty(key)){
+            return cb(null, componentConf[key]);
+        }else{
+            return cb(new Error('Key: ' + key + ' not found'));
+        }
+      });
+    };
+
     Confdis.prototype.subscribe = function(cb) {
         var self = this;
 
