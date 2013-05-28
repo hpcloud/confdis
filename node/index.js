@@ -68,7 +68,7 @@
             if(self.redisIndex !== null) {
                 self.db.select(self.redisIndex, function(err){
                     if(err) self.emit('error', err);
-                    return;
+                    return cb(err);
                 });
             }
             self.emit('ready');
