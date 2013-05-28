@@ -20,9 +20,10 @@
             }
         });
 
-        this.redisHost = opts.host;
-        this.redisPort = opts.port;
-        this.rootKey   = opts.rootKey;
+        this.redisHost  = opts.host;
+        this.redisPort  = opts.port;
+        this.redisIndex = opts.index || null;
+        this.rootKey    = opts.rootKey;
 
         this.config = null;
         this.db = null;
@@ -64,6 +65,12 @@
         });
 
         this.db.on('ready', function() {
+            if(self.redisIndex !== null) {
+                self.db.select(self.redisIndex, function(err){
+                    if(err) self.emit('error', err);
+                    return;
+                });
+            }
             self.emit('ready');
             return cb();
         });
