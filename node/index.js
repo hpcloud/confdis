@@ -7,6 +7,10 @@
 
     var Confdis = function (opts) {
 
+        if (!(this instanceof Confdis)) {
+            return new Confdis(opts);
+        }
+
         if (!opts) return new Error('Options object not supplied');
 
         this.opts = opts;
@@ -139,8 +143,9 @@
     Confdis.prototype.getComponentValue = function (component, key, cb) {
         this.db.get(component, function (err, reply) {
             if (err || !reply) return cb(err || new Error('Empty config'));
+            var componentConf = {};
             try {
-                var componentConf = JSON.parse(reply);
+                componentConf = JSON.parse(reply);
             } catch (err) {
                 return cb(err);
             }
