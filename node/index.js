@@ -3,7 +3,8 @@
 
     var jsondiff = require('jsondiffpatch'),
         events = require('events'),
-        redis = require('redis');
+        redis = require('redis'),
+        _ = require('lodash');
 
     var Confdis = function (opts) {
 
@@ -97,15 +98,22 @@
                     }
 
                     self.emit('sync');
-                    return cb(null, reply, changes);
+
+                    if (_.isFunction(cb)) {
+                        return cb(null, reply, changes);
+                    }
                 } else {
                     err = new Error('config is empty, not syncing');
                     self.emit('sync-error', err);
-                    return cb(err);
+                    if (_.isFunction(cb)) {
+                        return cb(err);
+                    }
                 }
             } else {
                 self.emit('sync-error', err);
-                return cb(err);
+                if (_.isFunction(cb)) {
+                    return cb(err);
+                }
             }
         });
     };

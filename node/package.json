@@ -1,26 +1,27 @@
 {
-  "name": "confdis",
-  "version": "0.0.1",
-  "description": "A JSON based configuration management tool backed by Redis",
-  "main": "index.js",
-  "scripts": {
-    "test": "make"
-  },
-  "repository": "",
-  "dependencies": {
-    "redis": "0.8.3",
-    "jsondiffpatch": "0.0.7"
-  },
-  "devDependencies": {
-    "mocha": "1.9.0"
-  },
-  "keywords": [
-    "redis",
-    "json",
-    "configuration",
-    "management",
-    "distributed"
-  ],
-  "author": "Jamie Paton <jamiep@activestate.com>",
-  "license": "ActiveState"
+    "name": "confdis",
+    "version": "0.0.1",
+    "description": "A JSON based configuration management tool backed by Redis",
+    "main": "index.js",
+    "scripts": {
+        "test": "make"
+    },
+    "repository": "",
+    "dependencies": {
+        "redis": "0.8.3",
+        "jsondiffpatch": "0.0.7",
+        "lodash": "1.3.1"
+    },
+    "devDependencies": {
+        "mocha": "1.9.0"
+    },
+    "keywords": [
+        "redis",
+        "json",
+        "configuration",
+        "management",
+        "distributed"
+    ],
+    "author": "Jamie Paton <jamiep@activestate.com>",
+    "license": "ActiveState"
 }
