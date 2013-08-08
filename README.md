@@ -16,6 +16,10 @@ extend a change/fix to other implementations spanning multiple repos.
 Not currently, but that would be ideal; if there was common test data
 to be shared between all implementations.
 
+### Is redis the only possible backend?
+
+Right now, yes. But we are investigating other solutions. See [Bug 99432](http://bugs.activestate.com/show_bug.cgi?id=99432).
+
 ## history
 
 http://bugs.activestate.com/show_bug.cgi?id=98612
