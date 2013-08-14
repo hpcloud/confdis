@@ -25,7 +25,7 @@ type ConfDis struct {
 func New(client *etcd.Client, rootKey string, structVal interface{}) (*ConfDis, error) {
 	c := ConfDis{}
 	c.client = client
-	c.rootKey = rootKey
+	c.rootKey = fmt.Sprintf("/config/%s", rootKey)
 	c.structType = reflect.TypeOf(structVal)
 	c.config = createStruct(c.structType)
 	c.Changes = make(chan error)
