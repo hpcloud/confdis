@@ -4,7 +4,8 @@ package confdis
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/vmihailenco/redis"
+	"github.com/coreos/etcd/store"
+	"github.com/coreos/go-etcd/etcd"
 	"reflect"
 	"sync"
 )
@@ -17,15 +18,13 @@ type ConfDis struct {
 	config     interface{} // Read-only view of current config tree.
 	rev        int64
 	mux        sync.Mutex // Mutex to protect changes to config and rev.
-	redis      *redis.Client
+	client     *etcd.Client
 	Changes    chan error // Channel to receive config updates (value is return of reload())
 }
 
-const PUB_SUFFIX = ":_changes"
-
-func New(client *redis.Client, rootKey string, structVal interface{}) (*ConfDis, error) {
+func New(client *etcd.Client, rootKey string, structVal interface{}) (*ConfDis, error) {
 	c := ConfDis{}
-	c.redis = client
+	c.client = client
 	c.rootKey = rootKey
 	c.structType = reflect.TypeOf(structVal)
 	c.config = createStruct(c.structType)
@@ -95,11 +94,8 @@ func (c *ConfDis) save() error {
 	if data, err := json.Marshal(c.config); err != nil {
 		return err
 	} else {
-		if r := c.redis.Set(c.rootKey, string(data)); r.Err() != nil {
-			return r.Err()
-		}
-		if r := c.redis.Publish(c.rootKey+PUB_SUFFIX, "confdis"); r.Err() != nil {
-			return r.Err()
+		if _, err := c.client.Set(c.rootKey, string(data), 0); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -107,11 +103,12 @@ func (c *ConfDis) save() error {
 
 // reload reloads the config tree from redis.
 func (c *ConfDis) reload() (interface{}, bool, error) {
-	if r := c.redis.Get(c.rootKey); r.Err() != nil {
-		return nil, true, r.Err()
+	if results, err := c.client.Get(c.rootKey); err != nil {
+		return nil, true, err
 	} else {
+		r := results[0]
 		config2 := createStruct(c.structType)
-		if err := json.Unmarshal([]byte(r.Val()), config2); err != nil {
+		if err := json.Unmarshal([]byte(r.Value), config2); err != nil {
 			return nil, false, err
 		}
 		c.mux.Lock()
@@ -126,19 +123,19 @@ func (c *ConfDis) reload() (interface{}, bool, error) {
 
 // watch watches for changes from other clients
 func (c *ConfDis) watch() error {
-	pubsub, err := c.redis.PubSubClient()
-	if err != nil {
-		return err
-	}
+	ch := make(chan *store.Response)
 
-	ch, err := pubsub.Subscribe(c.rootKey + PUB_SUFFIX)
-	if err != nil {
-		return err
-	}
+	go func() {
+		rev := uint64(0) // TODO
+		_, err := c.client.Watch(c.rootKey, rev, ch, nil)
+		panic(err)
+	}()
 
 	go func() {
 		for {
 			<-ch
+			// TODO: pass the value from <-ch to reload, so we don't
+			// have to read again (potentially incorrect rev).
 			_, _, err := c.reload()
 			// TODO: pass old config (_) if necessary in the future.
 			c.Changes <- err
