@@ -22,6 +22,7 @@ type ConfDis struct {
 }
 
 const PUB_SUFFIX = ":_changes"
+const PUB_VALUE = "{\"library\": \"confdis\"}"
 
 func New(client *redis.Client, rootKey string, structVal interface{}) (*ConfDis, error) {
 	c := ConfDis{}
@@ -98,7 +99,7 @@ func (c *ConfDis) save() error {
 		if r := c.redis.Set(c.rootKey, string(data)); r.Err() != nil {
 			return r.Err()
 		}
-		if r := c.redis.Publish(c.rootKey+PUB_SUFFIX, "confdis"); r.Err() != nil {
+		if r := c.redis.Publish(c.rootKey+PUB_SUFFIX, PUB_VALUE); r.Err() != nil {
 			return r.Err()
 		}
 	}
