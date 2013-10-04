@@ -1,0 +1,2 @@
+gom 'github.com/vmihailenco/bufio', :commit => 'cf0c7fcf6d5'
+gom 'github.com/vmihailenco/redis', :commit => '648518846'
