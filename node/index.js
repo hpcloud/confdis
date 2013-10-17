@@ -38,6 +38,8 @@
         this._REDIS_CONNECT_TIMEOUT = false;
         this._REDIS_OFFLINE_QUEUE = false;
 
+        return this;
+
     };
 
     Confdis.prototype = Object.create(events.EventEmitter.prototype);
@@ -72,11 +74,13 @@
             if (self.redisIndex !== null) {
                 self.db.select(self.redisIndex, function (err) {
                     if (err) self.emit('error', err);
+                    self.emit('ready');
                     return cb(err);
                 });
+            } else {
+                self.emit('ready');
+                return cb();
             }
-            self.emit('ready');
-            return cb();
         });
 
     };
