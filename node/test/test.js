@@ -20,7 +20,8 @@ describe('Confdis', function() {
             c = new Confdis({
                 rootKey: rootKey,
                 host: process.env.TEST_HOST,
-                port: process.env.TEST_PORT
+                port: process.env.TEST_PORT,
+                subscribe_to_changes: true
             });
 
             assert(c instanceof Confdis);
@@ -39,7 +40,6 @@ describe('Confdis', function() {
 
                     c.connect(function(err) {
                         assert(!err);
-
                     });
 
                 });
@@ -52,10 +52,10 @@ describe('Confdis', function() {
                 });
 
                 it('it should sync with error - config empty', function(done) {
-                  c.sync(function(err, config, changes) {
-                      assert(err);
-                      done();
-                  });
+                    c.sync(function(err, config, changes) {
+                        assert(err);
+                        done();
+                    });
                 });
 
 
@@ -102,6 +102,32 @@ describe('Confdis', function() {
                         assert(JSON.stringify(changes.version) === JSON.stringify([0, 99]));
                         done(err);
                     });
+                });
+
+                it('it should give me a local value', function(done) {
+                    c.getValue('atoms', function(err, value){
+                        assert(!err);
+                        assert(value.ids);
+                        done();
+                    });
+                });
+
+                it('it should set a local value and emit a pubsub change', function(done) {
+
+                    c.on('pubsub-message', function(channel, message){
+                        var change = JSON.parse(message);
+                        assert(change['test-key'] === 'test-value');
+                        done();
+                    });
+
+                    c.setValue('test-key', 'test-value', function(err, value){
+                        assert(!err);
+                        c.getValue('test-key', function(err, value) {
+                          assert(!err);
+                          assert(value === 'test-value');
+                        });
+                    });
+
                 });
 
                 it('it should emit an event on sync', function(done) {

@@ -38,6 +38,12 @@
         this._REDIS_CONNECT_TIMEOUT = false;
         this._REDIS_OFFLINE_QUEUE = false;
 
+        if (this.opts.subscribe_to_changes === true) {
+            this.subscribe(function(err) {
+                if (err) { throw err; }
+            });
+        }
+
         return this;
 
     };
@@ -101,7 +107,7 @@
                         self.config = JSON.parse(reply);
                     }
 
-                    self.emit('sync');
+                    self.emit('sync', changes);
 
                     if (_.isFunction(cb)) {
                         return cb(null, reply, changes);
@@ -150,6 +156,26 @@
                 return cb(err);
             }
         });
+    };
+
+    Confdis.prototype.setValue = function (key, value, cb) {
+        var self = this;
+        self.config[key] = value;
+        self.save(function(err) {
+            if (err) { return cb(err); }
+            var change = {};
+            change[key] = value;
+            self.db.publish(self.rootKey + self._PUB_SUFFIX, JSON.stringify(change), cb);
+        });
+    };
+
+    Confdis.prototype.getValue = function (key, cb) {
+        var self = this;
+        if (self.config[key]) {
+            return cb ? cb(null, self.config[key]) : self.config[key];
+        } else {
+            return cb ? cb() : null;
+        }
     };
 
     Confdis.prototype.getComponentValue = function (component, key, cb) {
