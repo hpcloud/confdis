@@ -1,0 +1,7 @@
+{
+    "github.com/vmihailenco/redis": {
+        "repo": "github.com/vmihailenco/redis",
+        "version": "master",
+        "type": "git"
+    }
+}
