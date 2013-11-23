@@ -1,7 +1,14 @@
 {
     "github.com/vmihailenco/redis": {
-        "repo": "github.com/vmihailenco/redis",
-        "version": "master",
-        "type": "git"
+        "repo": "http://github.com/vmihailenco/redis.git",
+        "version": "dfde821",
+        "type": "git-clone",
+        "alias": "github.com/vmihailenco/redis"
+    },
+    "github.com/vmihailenco/bufio": {
+        "repo": "http://github.com/vmihailenco/bufio.git",
+        "version": "73adb2",
+        "type": "git-clone",
+        "alias": "github.com/vmihailenco/bufio"
     }
 }
