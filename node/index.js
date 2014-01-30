@@ -36,7 +36,7 @@
         this._PUB_SUFFIX = ":_changes";
         this._REDIS_CONNECT_MAX_ATTEMPTS = null;
         this._REDIS_CONNECT_TIMEOUT = false;
-        this._REDIS_OFFLINE_QUEUE = false;
+        this._REDIS_OFFLINE_QUEUE = true;
 
         if (this.opts.subscribe_to_changes === true) {
             this.subscribe(function(err) {
@@ -68,20 +68,28 @@
             return cb(new Error('Host and port values must be provided'));
         }
 
-
         this.db = redis.createClient(self.redisPort, self.redisHost, this.redisConnectOpts());
 
         this.db.on('error', function (err) {
             self.emit('error', err);
-            return cb(err);
+            cb(err);
         });
 
         this.db.on('ready', function () {
+            self.db.removeAllListeners('error');
+
+            self.db.on('error', function (err) {
+                self.emit('error', err);
+            });
+
             if (self.redisIndex !== null) {
                 self.db.select(self.redisIndex, function (err) {
-                    if (err) self.emit('error', err);
+                    if (err) {
+                        self.emit('error', err);
+                        return cb(err);
+                    }
                     self.emit('ready');
-                    return cb(err);
+                    return cb();
                 });
             } else {
                 self.emit('ready');
@@ -201,9 +209,9 @@
         // Need multiple connections for subscriber mode
         self.pubsubDB = redis.createClient(self.redisPort, self.redisHost, self.redisConnectOpts());
 
-        self.pubsubDB.on('error', function (err) {
+        self.pubsubDB.once('error', function (err) {
             self.emit('error', err);
-            return cb(err);
+            cb(err);
         });
 
         self.pubsubDB.on('ready', function () {
@@ -211,6 +219,10 @@
         });
 
         self.pubsubDB.on('subscribe', function (channel, count) {
+            self.pubsubDB.removeAllListeners('error');
+            self.pubsubDB.on('error', function (err) {
+                self.emit('error', err);
+            });
             self.emit('subscribing', channel);
             return cb();
         });
