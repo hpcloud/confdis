@@ -82,12 +82,13 @@
                 self.emit('error', err);
             });
 
+            self.db.on('reconnecting', function () {
+                self.emit('reconnecting');
+            });
+
             if (self.redisIndex !== null) {
                 self.db.select(self.redisIndex, function (err) {
-                    if (err) {
-                        self.emit('error', err);
-                        return cb(err);
-                    }
+                    if (err) { return self.emit('error', err); }
                     self.emit('ready');
                     return cb();
                 });
@@ -215,20 +216,29 @@
         });
 
         self.pubsubDB.on('ready', function () {
-            self.pubsubDB.subscribe(self.rootKey + self._PUB_SUFFIX);
-        });
-
-        self.pubsubDB.on('subscribe', function (channel, count) {
             self.pubsubDB.removeAllListeners('error');
+            self.pubsubDB.removeAllListeners('subscribe');
+
             self.pubsubDB.on('error', function (err) {
                 self.emit('error', err);
             });
-            self.emit('subscribing', channel);
+
+            self.pubsubDB.on('subscribe', function (err) {
+                self.emit('subscribing');
+            });
+            self.pubsubDB.subscribe(self.rootKey + self._PUB_SUFFIX);
+        });
+
+        self.pubsubDB.once('subscribe', function (channel, count) {
             return cb();
         });
 
         self.pubsubDB.on('message', function (channel, message) {
             self.emit('pubsub-message', channel, message);
+        });
+
+        self.pubsubDB.on('reconnecting', function () {
+            self.emit('reconnecting');
         });
 
         self.on('pubsub-message', function (channel, message) {
