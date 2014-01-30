@@ -35,7 +35,7 @@
 
         this._PUB_SUFFIX = ":_changes";
         this._REDIS_CONNECT_MAX_ATTEMPTS = null;
-        this._REDIS_CONNECT_TIMEOUT = false;
+        this._REDIS_CONNECT_TIMEOUT = 60 * 1000;
         this._REDIS_OFFLINE_QUEUE = true;
 
         if (this.opts.subscribe_to_changes === true) {
