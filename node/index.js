@@ -217,19 +217,18 @@
 
         self.pubsubDB.on('ready', function () {
             self.pubsubDB.removeAllListeners('error');
-            self.pubsubDB.removeAllListeners('subscribe');
-
             self.pubsubDB.on('error', function (err) {
                 self.emit('error', err);
             });
 
-            self.pubsubDB.on('subscribe', function (err) {
-                self.emit('subscribing');
-            });
             self.pubsubDB.subscribe(self.rootKey + self._PUB_SUFFIX);
         });
 
         self.pubsubDB.once('subscribe', function (channel, count) {
+            self.pubsubDB.removeAllListeners('subscribe');
+            self.pubsubDB.on('subscribe', function (err) {
+                self.emit('subscribing');
+            });
             return cb();
         });
 
