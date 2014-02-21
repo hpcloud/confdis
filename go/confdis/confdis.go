@@ -109,11 +109,11 @@ func (c *ConfDis) save() error {
 // reload reloads the config tree from redis.
 func (c *ConfDis) reload() (interface{}, bool, error) {
 	if r := c.redis.Get(c.rootKey); r.Err() != nil {
-		return nil, true, r.Err()
+		return nil, true, fmt.Errorf("redis: Failed to GET %v; %v", c.rootKey, r.Err())
 	} else {
 		config2 := createStruct(c.structType)
 		if err := json.Unmarshal([]byte(r.Val()), config2); err != nil {
-			return nil, false, err
+			return nil, false, fmt.Errorf("failed to decode JSON response for redis GET %v; %v", c.rootKey, err)
 		}
 		c.mux.Lock()
 		defer c.mux.Unlock()
