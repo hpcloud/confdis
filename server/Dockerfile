@@ -1,6 +1,4 @@
-FROM stackato/base
-
-RUN apt-get install -qy redis-server
+FROM stackato/base-redis
 
 ADD . /source
 ADD stackon.json /
