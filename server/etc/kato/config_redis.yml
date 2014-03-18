@@ -1,0 +1,4 @@
+---
+name: config_redis
+roles:
+  - primary

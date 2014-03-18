@@ -1,0 +1,17 @@
+{
+  "name": "stackato/config-redis",
+  "volumes": [
+    "/var/stackato/data/config_redis:/var/stackato/data/config_redis:rw"
+  ],
+  "ports": [
+    "7474:7474"
+  ],
+  "kato": {
+    "processes": [
+      "/source/etc/kato/config_redis.yml"
+    ],
+    "supervisor": [
+      "/source/etc/supervisord.conf.d/config_redis"
+    ]
+  }
+}
