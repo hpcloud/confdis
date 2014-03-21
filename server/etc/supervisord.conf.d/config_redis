@@ -1,6 +1,6 @@
 
 [program:config_redis]
-command=/s/stackon/stackon-run /s/etc/stackons/stackato/config-redis/stackon.json
+command=/s/stackon/stackon-run stackato/config-redis
 priority=1
 redirect_stderr=true
 stdout_logfile=/s/logs/config_redis.log
