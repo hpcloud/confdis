@@ -168,6 +168,11 @@ describe('Confdis', function() {
                     });
                 });
 
+                it('should not have a loopback IP connection to redis', function(done) {
+                    assert(!c.redisHost.match(/^(127\.[\d.]+|[0:]+1|localhost)$/i));
+                    done();
+                });
+
             });
         });
     });

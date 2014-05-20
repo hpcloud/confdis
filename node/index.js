@@ -1,9 +1,14 @@
+/**
+ * Copyright (c) ActiveState 2013 - ALL RIGHTS RESERVED.
+ */
+
 (function () {
     'use strict';
 
-    var jsondiff = require('jsondiffpatch'),
-        events = require('events'),
-        redis = require('redis'),
+    var JsonDiff = require('jsondiffpatch'),
+        Events = require('events'),
+        Redis = require('redis'),
+        Util = require('./lib/util'),
         _ = require('lodash');
 
     var Confdis = function (opts) {
@@ -12,7 +17,7 @@
             return new Confdis(opts);
         }
 
-        if (!opts) return new Error('Options object not supplied');
+        if (!opts) { return new Error('Options object not supplied'); }
 
         this.opts = opts;
 
@@ -33,7 +38,7 @@
         this.db = null;
         this.pubsubDB = null;
 
-        this._PUB_SUFFIX = ":_changes";
+        this._PUB_SUFFIX = ':_changes';
         this._REDIS_CONNECT_MAX_ATTEMPTS = null;
         this._REDIS_CONNECT_TIMEOUT = 60 * 1000;
         this._REDIS_OFFLINE_QUEUE = true;
@@ -45,10 +50,9 @@
         }
 
         return this;
-
     };
 
-    Confdis.prototype = Object.create(events.EventEmitter.prototype);
+    Confdis.prototype = Object.create(Events.EventEmitter.prototype);
 
     Confdis.prototype.redisConnectOpts = function () {
         return {
@@ -62,13 +66,18 @@
 
         var self = this;
 
-        if (!cb) return new Error('Callback function not supplied as last argument');
+        if (!cb) { return new Error('Callback function not supplied as last argument'); }
 
         if (!self.redisHost || !self.redisPort) {
             return cb(new Error('Host and port values must be provided'));
         }
 
-        this.db = redis.createClient(self.redisPort, self.redisHost, this.redisConnectOpts());
+        /* 103391 Components should avoid redis connection on loopback addresses */
+        if (self.redisHost.match(/^(127\.[\d.]+|[0:]+1|localhost)$/i)) {
+            self.redisHost = Util.getInterfaceAddress('eth0').address;
+        }
+
+        this.db = Redis.createClient(self.redisPort, self.redisHost, this.redisConnectOpts());
 
         this.db.on('error', function (err) {
             self.emit('error', err);
@@ -111,7 +120,7 @@
                     if (self.config) {
                         var prevConfig = JSON.parse(JSON.stringify(self.config));
                         self.config = JSON.parse(reply);
-                        changes = jsondiff.diff(prevConfig, self.config);
+                        changes = JsonDiff.diff(prevConfig, self.config);
                     } else {
                         self.config = JSON.parse(reply);
                     }
@@ -157,7 +166,7 @@
 
     Confdis.prototype.clear = function (cb) {
         var self = this;
-        this.db.set(this.opts.rootKey, "", function (err, res) {
+        this.db.set(this.opts.rootKey, '', function (err, res) {
             if (!err) {
                 self.config = null;
                 return cb();
@@ -208,7 +217,7 @@
         var self = this;
 
         // Need multiple connections for subscriber mode
-        self.pubsubDB = redis.createClient(self.redisPort, self.redisHost, self.redisConnectOpts());
+        self.pubsubDB = Redis.createClient(self.redisPort, self.redisHost, self.redisConnectOpts());
 
         self.pubsubDB.once('error', function (err) {
             self.emit('error', err);
