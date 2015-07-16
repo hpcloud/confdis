@@ -1,4 +1,4 @@
-FROM stackato/base-redis
+FROM docker-internal.stackato.com/stackato/base-redis:master
 
 ADD . /source
 ADD stackon.json /
