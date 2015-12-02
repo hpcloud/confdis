@@ -81,7 +81,19 @@
 
         this.db.on('error', function (err) {
             self.emit('error', err);
-            cb(err);
+            // OP 302284
+      	    //
+      	    // Do __not__ pass the error to the done callback 'cb'.
+      	    // This callback, provided by s-rest, will not just print
+      	    // the message again, but also kill s-rest by throwing it
+      	    // as error.
+      	    //
+      	    // With this statement gone the emitter, i.e. the redis
+      	    // client, will go and start retrying making the
+      	    // connection, until it either works, or the limits (See
+      	    // connect timeout set by this module) are reached. During
+      	    // this time s-rest keeps running instead of forcing
+      	    // supervisord to restart it for the connection retry.
         });
 
         this.db.on('ready', function () {
